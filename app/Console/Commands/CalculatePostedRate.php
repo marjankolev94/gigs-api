@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\User;
 use App\Models\Gig;
+use Illuminate\Support\Facades\DB;
 
 class CalculatePostedRate extends Command
 {
@@ -27,23 +28,37 @@ class CalculatePostedRate extends Command
      */
     public function handle()
     {
-        $users = User::all();
+        $users = User::with('companies')->get();
+        $gigCounts = Gig::select('company_id', 'status')
+                        ->get()
+                        ->groupBy('company_id');
 
-        foreach($users as $user) {
-            $postedGigsCount = Gig::whereIn('company_id', $user->companies->pluck('id')->toArray())
-                                ->where('status', true)
-                                ->count();
-            
-            $totalGigsCount = Gig::whereIn('company_id', $user->companies->pluck('id')->toArray())
-                                ->count();
-                            
+        $cases = [];
+        $userIds = [];
+
+        foreach ($users as $user) {
+            $companyIds = $user->companies->pluck('id')->toArray();
+            $totalGigsCount = $postedGigsCount = 0;
+    
+            foreach ($companyIds as $companyId) {
+                if (isset($gigCounts[$companyId])) {
+                    $totalGigsCount += $gigCounts[$companyId]->count();
+                    $postedGigsCount += $gigCounts[$companyId]->where('status', true)->count();
+                }
+            }
+    
             $postRate = $totalGigsCount > 0 ? round(($postedGigsCount / $totalGigsCount) * 100, 2) : 0;
-            $user->posted_rate = $postRate;
-
-            $user->save();
-
-            $this->info("Updated posted rate for user {$user->first_name} {$user->last_name}: {$postRate}%");
+    
+            $cases[] = "WHEN id = {$user->id} THEN {$postRate}";
+            $userIds[] = $user->id;
+    
+            $this->info("Calculated posted rate for user {$user->first_name} {$user->last_name}: {$postRate}%");
         }
+
+        $caseStatement = implode(' ', $cases);
+        $userIds = implode(',', $userIds);
+
+        DB::statement("UPDATE users SET posted_rate = CASE {$caseStatement} END WHERE id IN ({$userIds})");
 
         $this->info('Posted rates calculated for all users.');
     }
