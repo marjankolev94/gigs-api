@@ -1,4 +1,4 @@
-# PrimeYear App
+# Gigs API
 
 Gigs API is Restful API for the Gigs platform built using PHP/Laravel.
 This API is for a platform for listing gigs. A gig is a job that lasts a certain period of time, offten short-term.
