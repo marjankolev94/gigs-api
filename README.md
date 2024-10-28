@@ -24,7 +24,7 @@ ex. `?company_id=1&progress=started&status=posted`
 ex. `?search=Marjan`
 - **Gigs List (Filter and Search)**: API call for filter and search for a Gigs in the same time
 ex. `?company_id=1&progress=started&status=posted&search=Description`
-
+- **Post Rate Command**: Command for calculating and updating the posted rate for all users by using pre-defined formula.
 ## Getting Started
 
 ### Prerequisites
